@@ -4,3 +4,11 @@ plugins
 www
 
 .vscode
+
+coverage/
+
+**/*.cer
+**/*.mobileprovision
+
+fastlane/README.md
+fastlane/report.xml

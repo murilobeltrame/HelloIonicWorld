@@ -1,0 +1,86 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+fastlane_require 'nokogiri'
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+platform :hybrid do
+    desc "Runs all the tests"
+    lane :test do
+      # Run Angular Tests
+      # https://angular.io/cli/test
+      sh '$(npm bin)/ng test --codeCoverage=true --watch=false'
+    end
+end
+
+platform :ios do
+
+    desc "Build the app"
+    lane :build do
+    
+      # Getting BundleId
+      configFile = File.open("../config.xml") { |f| Nokogiri::XML(f) }
+      appIdentifier = configFile.at_xpath(“/*/@ios-CFBundleIdentifier”).to_s
+      if appIdentifier == ''
+        appIdentifier = configFile.at_xpath(“/*/@id”).to_s
+      end 
+
+      # Unlock Keychain
+      unlock_keychain(
+        path: "~/Library/Keychains/login.keychain-db",
+        add_to_search_list: true
+      )
+
+      # Assign app
+      # https://docs.fastlane.tools/codesigning/getting-started/#using-cert-and-sigh
+      get_certificates(
+          team_id: 'WQR9UXD4Q5',
+          development: true)           # invokes cert
+      get_provisioning_profile(
+          team_id: 'WQR9UXD4Q5', 
+          app_identifier: appIdentifier,
+          filename: 'dev.mobileprovision',
+          development: true)                # invokes sigh
+
+      # Install the mobileprovision
+      stdout, status = Open3.capture2('uuid=`grep UUID -A1 -a ../dev.mobileprovision | grep -io "[-A-Z0-9]\{36\}"` && \
+        cp ../dev.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$uuid.mobileprovision && \
+        echo $uuid')
+      stdout = stdout.delete("\n")
+
+      # Updates build configuration
+      file = File.open("../build.json", "rb")
+      contents = file.read
+      parsedContent = JSON.parse(contents)
+      parsedContent["ios"]["debug"]["provisioningProfile"] = stdout
+      parsedContent["ios"]["debug"]["developmentTeam"] = 'WQR9UXD4Q5'
+      contents = parsedContent.to_json
+      File.open("../build.json", 'w') do |file|
+        file.write contents
+      end
+
+      sh '$(npm bin)/ionic cordova build ios --device'
+    end
+  
+    desc "Build and Run for Crashlytics"
+    lane :fabric do
+      # Upload app to Fabric Beta (Crashlytics)
+      # https://docs.fastlane.tools/getting-started/ios/beta-deployment/#beta-testing-services
+      # Should be configured with Fabric and Crashlytics Pods
+      # Install instructions at
+      # https://fabric.io/kits/ios/crashlytics/install
+      crashlytics
+    end
+  
+  end
