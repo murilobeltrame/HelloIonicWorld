@@ -60,6 +60,8 @@ platform :ios do
       stdout = stdout.delete("\n")
 
       # Updates build configuration
+      # Build.json is required to correctly configure xcodebuild calls
+      # https://cordova.apache.org/docs/en/latest/guide/platforms/ios/
       file = File.open("../build.json", "rb")
       contents = file.read
       parsedContent = JSON.parse(contents)
@@ -72,7 +74,7 @@ platform :ios do
 
       sh '$(npm bin)/ionic cordova build ios --device'
     end
-    
+
 end
 
 platform :android do
