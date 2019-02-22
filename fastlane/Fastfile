@@ -72,15 +72,14 @@ platform :ios do
 
       sh '$(npm bin)/ionic cordova build ios --device'
     end
-  
-    desc "Build and Run for Crashlytics"
-    lane :fabric do
-      # Upload app to Fabric Beta (Crashlytics)
-      # https://docs.fastlane.tools/getting-started/ios/beta-deployment/#beta-testing-services
-      # Should be configured with Fabric and Crashlytics Pods
-      # Install instructions at
-      # https://fabric.io/kits/ios/crashlytics/install
-      crashlytics
-    end
-  
+    
+end
+
+platform :android do
+
+  desc "Build the app"
+  lane :build do
+    sh '$(npm bin)/ionic cordova build android --device'
   end
+
+end
